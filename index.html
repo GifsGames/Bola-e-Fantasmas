@@ -51,6 +51,14 @@
     let player, balls, ghosts, obstacles;
     let gameState = "start"; // start, playing, gameover
 
+    // Carregar sprite do fantasma
+    const ghostImg = new Image();
+    ghostImg.src = "https://i.imgur.com/0MZRF79.png"; // link direto da imagem
+
+    function drawGhost(g) {
+      ctx.drawImage(ghostImg, g.x - g.r, g.y - g.r, g.r*2, g.r*2);
+    }
+
     function spawnBalls(num) {
       const arr = [];
       for (let i = 0; i < num; i++) {
@@ -71,7 +79,6 @@
           x: Math.random() * (canvas.width - 40) + 20,
           y: Math.random() * (canvas.height - 40) + 20,
           r: 20,
-          color: i % 2 === 0 ? 'white' : 'lightblue',
           speed: speed
         });
       }
@@ -89,7 +96,7 @@
       ];
       if (fullReset) {
         score = 0;
-        lives = 1;
+        lives = 3;
         level = 1;
       }
       scoreEl.textContent = 'Pontos: ' + score;
@@ -222,7 +229,7 @@
       ctx.fillText("Pressione ENTER para começar", 150, 330);
     }
 
-     function drawGameOverScreen() {
+      function drawGameOverScreen() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "red";
       ctx.font = "40px Arial";
