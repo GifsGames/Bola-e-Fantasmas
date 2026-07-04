@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Bola e Fantasmas</title>
+  <style>
+    body {
+      background-color: #0b1e3a;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      overflow: hidden;
+    }
+    #gameCanvas {
+      background-color: #102b5c;
+      display: block;
+      margin: 20px auto;
+      border: 2px solid #fff;
+    }
+    h1 {
+      color: orange;
+      text-shadow: 2px 2px 4px #000;
+    }
+    #score, #message, #lives, #level {
+      font-size: 20px;
+      margin: 5px;
+    }
+    #message {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bola e Fantasmas</h1>
+  <div id="score"></div>
+  <div id="lives"></div>
+  <div id="level"></div>
+  <div id="message"></div>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const livesEl = document.getElementById('lives');
+    const levelEl = document.getElementById('level');
+    const messageEl = document.getElementById('message');
+
+    let score = 0, lives = 3, level = 1;
+    let player, balls, ghosts, obstacles;
+    let gameState = "start"; // start, playing, gameover
+
+    function spawnBalls(num) {
+      const arr = [];
+      for (let i = 0; i < num; i++) {
+        arr.push({
+          x: Math.random() * (canvas.width - 40) + 20,
+          y: Math.random() * (canvas.height - 40) + 20,
+          r: 10,
+          color: 'blue'
+        });
+      }
+      return arr;
+    }
+
+    function spawnGhosts(num, speed) {
+      const arr = [];
+      for (let i = 0; i < num; i++) {
+        arr.push({
+          x: Math.random() * (canvas.width - 40) + 20,
+          y: Math.random() * (canvas.height - 40) + 20,
+          r: 20,
+          color: i % 2 === 0 ? 'white' : 'lightblue',
+          speed: speed
+        });
+      }
+      return arr;
+    }
+
+    function resetGame(fullReset = true) {
+      player = { x: 300, y: 200, r: 15, color: 'red', speed: 4 };
+      balls = spawnBalls(5 + level * 2);
+      ghosts = spawnGhosts(2 + Math.floor(level / 2), 1.2 + level * 0.2);
+      obstacles = [
+        { x: 150, y: 200, w: 80, h: 20 },
+        { x: 300, y: 100, w: 20, h: 80 },
+        { x: 450, y: 250, w: 100, h: 20 }
+      ];
+      if (fullReset) {
+        score = 0;
+        lives = 1;
+        level = 1;
+      }
+      scoreEl.textContent = 'Pontos: ' + score;
+      livesEl.textContent = 'Vidas: ' + lives;
+      levelEl.textContent = 'Fase: ' + level;
+      messageEl.textContent = '';
+    }
+
+    const keys = {};
+    document.addEventListener('keydown', e => {
+      keys[e.key] = true;
+      if (gameState === "start" && e.key === "Enter") {
+        gameState = "playing";
+        resetGame(true);
+      }
+      if (gameState === "gameover" && e.key === "Enter") {
+        gameState = "start";
+      }
+    });
+    document.addEventListener('keyup', e => keys[e.key] = false);
+
+    function collidesWithObstacle(x, y, r) {
+      return obstacles.some(o =>
+        x + r > o.x &&
+        x - r < o.x + o.w &&
+        y + r > o.y &&
+        y - r < o.y + o.h
+      );
+    }
+
+    function movePlayer() {
+      let newX = player.x;
+      let newY = player.y;
+      if (keys['ArrowUp']) newY -= player.speed;
+      if (keys['ArrowDown']) newY += player.speed;
+      if (keys['ArrowLeft']) newX -= player.speed;
+      if (keys['ArrowRight']) newX += player.speed;
+
+      if (newX < player.r) newX = player.r;
+      if (newY < player.r) newY = player.r;
+      if (newX > canvas.width - player.r) newX = canvas.width - player.r;
+      if (newY > canvas.height - player.r) newY = canvas.height - player.r;
+
+      if (!collidesWithObstacle(newX, newY, player.r)) {
+        player.x = newX;
+        player.y = newY;
+      }
+    }
+
+    function moveGhosts() {
+      ghosts.forEach(g => {
+        const dx = player.x - g.x;
+        const dy = player.y - g.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        let newX = g.x + (dx / dist) * g.speed;
+        let newY = g.y + (dy / dist) * g.speed;
+
+        if (newX < g.r) newX = g.r;
+        if (newY < g.r) newY = g.r;
+        if (newX > canvas.width - g.r) newX = canvas.width - g.r;
+        if (newY > canvas.height - g.r) newY = canvas.height - g.r;
+
+        if (!collidesWithObstacle(newX, newY, g.r)) {
+          g.x = newX;
+          g.y = newY;
+        }
+      });
+    }
+
+    function drawCircle(obj) {
+      ctx.beginPath();
+      ctx.arc(obj.x, obj.y, obj.r, 0, Math.PI * 2);
+      ctx.fillStyle = obj.color;
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawObstacles() {
+      ctx.fillStyle = 'black';
+      obstacles.forEach(o => ctx.fillRect(o.x, o.y, o.w, o.h));
+    }
+
+    function checkCollisions() {
+      ghosts.forEach(g => {
+        const dx = player.x - g.x;
+        const dy = player.y - g.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < player.r + g.r) {
+          lives--;
+          livesEl.textContent = 'Vidas: ' + lives;
+          if (lives > 0) {
+            messageEl.textContent = 'VOCÊ MORREU!';
+            setTimeout(() => resetGame(false), 1500);
+          } else {
+            gameState = "gameover";
+          }
+        }
+      });
+
+      balls = balls.filter(b => {
+        const dx = player.x - b.x;
+        const dy = player.y - b.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < player.r + b.r) {
+          score++;
+          scoreEl.textContent = 'Pontos: ' + score;
+          return false;
+        }
+        return true;
+      });
+
+      if (balls.length === 0) {
+        level++;
+        levelEl.textContent = 'Fase: ' + level;
+        balls = spawnBalls(5 + level * 2);
+        ghosts = spawnGhosts(2 + Math.floor(level / 2), 1.2 + level * 0.2);
+      }
+    }
+
+    function drawStartScreen() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "orange";
+      ctx.font = "40px Arial";
+      ctx.fillText("Bola e Fantasmas", 150, 150);
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.fillText("Use as setas para mover", 180, 220);
+      ctx.fillText("Coma as bolinhas azuis", 190, 250);
+      ctx.fillText("Fuja dos fantasmas!", 200, 280);
+      ctx.fillText("Pressione ENTER para começar", 150, 330);
+    }
+
+     function drawGameOverScreen() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "red";
+      ctx.font = "40px Arial";
+      ctx.fillText("GAME OVER", 200, 180);
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.fillText("Pontuação final: " + score, 220, 230);
+      ctx.fillText("Fase alcançada: " + level, 220, 260);
+      ctx.fillText("Pressione ENTER para reiniciar", 170, 310);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (gameState === "start") {
+        drawStartScreen();
+      } else if (gameState === "playing") {
+        drawCircle(player);
+        balls.forEach(drawCircle);
+        ghosts.forEach(drawCircle);
+        drawObstacles();
+      } else if (gameState === "gameover") {
+        drawGameOverScreen();
+      }
+    }
+
+    function gameLoop() {
+      if (gameState === "playing") {
+        movePlayer();
+        moveGhosts();
+        checkCollisions();
+      }
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Inicializa o jogo
+    resetGame();
+    gameLoop();
+  </script>
+</body>
+</html>
