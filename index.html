@@ -29,9 +29,6 @@
       color: red;
       font-weight: bold;
     }
-    
-// No lugar de ghosts.forEach(drawCircle);
-ghosts.forEach(drawGhost);
   </style>
 </head>
 <body>
@@ -67,27 +64,6 @@ ghosts.forEach(drawGhost);
       return arr;
     }
 
-    // Carregar sprite do fantasma
-    const ghostImg = new Image();
-    ghostImg.src = "https://i.imgur.com/0MZRF79.png"; // link direto da imagem
-
-    function drawGhost(g) {
-      ctx.drawImage(ghostImg, g.x - g.r, g.y - g.r, g.r*2, g.r*2);
-    }
-
-    function spawnBalls(num) {
-      const arr = [];
-      for (let i = 0; i < num; i++) {
-        arr.push({
-          x: Math.random() * (canvas.width - 40) + 20,
-          y: Math.random() * (canvas.height - 40) + 20,
-          r: 10,
-          color: 'blue'
-        });
-      }
-      return arr;
-    }
-
     function spawnGhosts(num, speed) {
       const arr = [];
       for (let i = 0; i < num; i++) {
@@ -95,11 +71,9 @@ ghosts.forEach(drawGhost);
           x: Math.random() * (canvas.width - 40) + 20,
           y: Math.random() * (canvas.height - 40) + 20,
           r: 20,
+          color: i % 2 === 0 ? 'white' : 'lightblue',
           speed: speed
         });
-      }
-      return arr;
-    }
       }
       return arr;
     }
@@ -283,7 +257,7 @@ ghosts.forEach(drawGhost);
       draw();
       requestAnimationFrame(gameLoop);
     }
-  
+
     // Inicializa o jogo
     resetGame();
     gameLoop();
